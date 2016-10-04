@@ -1,22 +1,26 @@
-import os
 import tornado.ioloop
 import tornado.web
+import Settings
+import tornado.httpserver
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-SAML_FOLDER = os.path.join(BASE_DIR, 'saml')
+class Application(tornado.web.Application):
+    def __init__(self):
+        handlers = [
+            (r"/", MainHandler)
+        ]
+        settings = {
+            "template_path": Settings.TEMPLATE_PATH,
+            "saml_path": Settings.SAML_PATH,
+        }
+        tornado.web.Application.__init__(self, handlers, **settings)
+
 
 class MainHandler(tornado.web.RequestHandler):
-
      def get(self):
-        self.render("base.html")
-
-def make_app():
-    return tornado.web.Application([
-        (r"/", MainHandler),
-    ])
+        self.render("index.html")
 
 if __name__ == "__main__":
-    app = make_app()
-
-    application.listen(8000)
-    tornado.ioloop.IOLoop.current().start()
+    app = Application()
+    http_server = tornado.httpserver.HTTPServer(app)
+    http_server.listen(8000)
+    tornado.ioloop.IOLoop.instance().start()
