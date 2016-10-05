@@ -13,6 +13,7 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/", IndexHandler)
             (r"/attrs", AttrsHandler)
+            (r"/metadata",MetadataHandler)
         ]
         settings = {
             "template_path": Settings.TEMPLATE_PATH,
@@ -32,14 +33,14 @@ class IndexHandler(tornado.web.RequestHandler):
         paint_logout = False
 
         if 'sso' in req['get_data']:
-            return HttpResponseRedirect(auth.login())
+            return self.redirect(auth.login())
             # If AuthNRequest ID need to be stored in order to later validate it, do instead
             # sso_built_url = auth.login()
             # request.session['AuthNRequestID'] = auth.get_last_request_id()
-            # return HttpResponseRedirect(sso_built_url)
+            # return self.redirect(sso_built_url)
         elif 'sso2' in req['get_data']:
             return_to = OneLogin_Saml2_Utils.get_self_url(req) + reverse('attrs')
-            return HttpResponseRedirect(auth.login(return_to))
+            return self.redirect(auth.login(return_to))
         elif 'slo' in req['get_data']:
             name_id = None
             session_index = None
@@ -48,7 +49,7 @@ class IndexHandler(tornado.web.RequestHandler):
             if 'samlSessionIndex' in request.session:
                 session_index = request.session['samlSessionIndex']
 
-            return HttpResponseRedirect(auth.logout(name_id=name_id, session_index=session_index))
+            return self.redirect(auth.logout(name_id=name_id, session_index=session_index))
 
             # If LogoutRequest ID need to be stored in order to later validate it, do instead
             # slo_built_url = auth.logout(name_id=name_id, session_index=session_index)
@@ -69,7 +70,7 @@ class IndexHandler(tornado.web.RequestHandler):
                 request.session['samlNameId'] = auth.get_nameid()
                 request.session['samlSessionIndex'] = auth.get_session_index()
                 if 'RelayState' in req['post_data'] and OneLogin_Saml2_Utils.get_self_url(req) != req['post_data']['RelayState']:
-                    return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
+                    return self.redirect(auth.redirect_to(req['post_data']['RelayState']))
         elif 'sls' in req['get_data']:
             request_id = None
             if 'LogoutRequestID' in request.session:
@@ -79,7 +80,7 @@ class IndexHandler(tornado.web.RequestHandler):
             errors = auth.get_errors()
             if len(errors) == 0:
                 if url is not None:
-                    return HttpResponseRedirect(url)
+                    return self.redirect(url)
                 else:
                     success_slo = True
 
@@ -101,6 +102,20 @@ class AttrsHandler(tornado.web.RequestHandler):
                 attributes = request.session['samlUserdata'].items()
 
         self.render('attrs.html',paint_logout=paint_logout,attributes=attributes)
+
+class MetadataHandler(tornado.web.RequestHandler):
+    # req = prepare_django_request(request)
+    # auth = init_saml_auth(req)
+    # saml_settings = auth.get_settings()
+    saml_settings = OneLogin_Saml2_Settings(settings=None, custom_base_path=settings.SAML_FOLDER, sp_validation_only=True)
+    metadata = saml_settings.get_sp_metadata()
+    errors = saml_settings.validate_metadata(metadata)
+
+    if len(errors) == 0:
+        resp = HttpResponse(content=metadata, content_type='text/xml')
+    else:
+        resp = HttpResponseServerError(content=', '.join(errors))
+    return resp
 
 def prepare_tornado_request(request):
     # If server is behind proxys or balancers use the HTTP_X_FORWARDED fields
