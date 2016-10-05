@@ -17,7 +17,7 @@
               <li>{{ val }}</li>
             {% endfor %}
           </ul></td></tr>
-        {% endfor %}
+        {% end %}
       </tbody>
     </table>
   {% else %}
@@ -26,6 +26,6 @@
   <a href="{% url "index" %}?slo" class="btn btn-danger">Logout</a>
 {% else %}
   <a href="{% url "index" %}?sso2" class="btn btn-primary">Login and access again to this page</a>
-{% endif %}
+{% end %}
 
-{% endblock %}
+{% end %}
