@@ -29,14 +29,14 @@
       </thead>
       <tbody>
         {% for attr, i in attributes %}
-          {% if i == 0 %}
-            <tr><td>{{ attr }}</td>
-            <td><ul class="list-unstyled">
-          {% end %}
+            {% if i == 0 %}
+                <tr><td>{{ attr }}</td>
+                <td><ul class="list-unstyled">
+            {% end %}
             {% if i == 1 %}
-              {% for val in attr %}
-                <li>{{ val }}</li>
-              {% end %}
+                {% for val in attr %}
+                    <li>{{ val }}</li>
+                {% end %}
             {% end %}
           </ul></td></tr>
         {% end %}
