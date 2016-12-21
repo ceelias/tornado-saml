@@ -32,9 +32,6 @@ class IndexHandler(tornado.web.RequestHandler):
         attributes = False
         paint_logout = False
 
-        print 'THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-        print self.request
-        print 'THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
         auth.process_response()
         errors = auth.get_errors()
         not_auth_warn = not auth.is_authenticated()
@@ -80,7 +77,6 @@ class IndexHandler(tornado.web.RequestHandler):
             return self.redirect(auth.logout(name_id=name_id, session_index=session_index))
 
         elif 'sls' in req['get_data']:
-            print 'getting here'
             dscb = lambda: session.clear() ## clear out the session
             url = auth.process_slo(request_id=request_id, delete_session_cb=dscb)
             errors = auth.get_errors()
@@ -134,8 +130,6 @@ def prepare_tornado_request(request):
         'post_data': request.arguments,
         'query_string': request.query
     }
-    #print request
-    #print result
     return result
 
 def init_saml_auth(req):
