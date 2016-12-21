@@ -32,6 +32,9 @@ class IndexHandler(tornado.web.RequestHandler):
         attributes = False
         paint_logout = False
 
+        print 'THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        print self.request
+        print 'THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
         auth.process_response()
         errors = auth.get_errors()
         not_auth_warn = not auth.is_authenticated()
@@ -44,10 +47,10 @@ class IndexHandler(tornado.web.RequestHandler):
              if 'RelayState' in request.forms and self_url != request.forms['RelayState']:
                  return redirect(request.forms['RelayState'])
 
-         if 'samlUserdata' in session:
-             paint_logout = True
-             if len(session['samlUserdata']) > 0:
-                 attributes = session['samlUserdata'].items()
+        if 'samlUserdata' in session:
+            paint_logout = True
+            if len(session['samlUserdata']) > 0:
+                attributes = session['samlUserdata'].items()
 
         self.render('index.html',errors=errors,not_auth_warn=not_auth_warn,attributes=attributes,paint_logout=paint_logout)
 
@@ -63,7 +66,8 @@ class IndexHandler(tornado.web.RequestHandler):
         if 'sso' in req['get_data']:
             return self.redirect(auth.login())
         elif 'sso2' in req['get_data']:
-            return_to = OneLogin_Saml2_Utils.get_self_url(req) + reverse('attrs')
+            return_to = '%s/attrs' % self.request.host
+            #return_to = OneLogin_Saml2_Utils.get_self_url(req) + reverse('attrs')
             return self.redirect(auth.login(return_to))
         elif 'slo' in req['get_data']:
             name_id = None
@@ -76,6 +80,7 @@ class IndexHandler(tornado.web.RequestHandler):
             return self.redirect(auth.logout(name_id=name_id, session_index=session_index))
 
         elif 'sls' in req['get_data']:
+            print 'getting here'
             dscb = lambda: session.clear() ## clear out the session
             url = auth.process_slo(request_id=request_id, delete_session_cb=dscb)
             errors = auth.get_errors()
@@ -105,18 +110,19 @@ class AttrsHandler(tornado.web.RequestHandler):
         self.render('attrs.html',paint_logout=paint_logout,attributes=attributes)
 
 class MetadataHandler(tornado.web.RequestHandler):
-    req = prepare_django_request(request)
-    auth = init_saml_auth(req)
-    saml_settings = auth.get_settings()
-    #saml_settings = OneLogin_Saml2_Settings(settings=None, custom_base_path=settings.SAML_FOLDER, sp_validation_only=True)
-    metadata = saml_settings.get_sp_metadata()
-    errors = saml_settings.validate_metadata(metadata)
+    def get(self):
+        req = prepare_tornado_request(request)
+        auth = init_saml_auth(req)
+        saml_settings = auth.get_settings()
+        #saml_settings = OneLogin_Saml2_Settings(settings=None, custom_base_path=settings.SAML_FOLDER, sp_validation_only=True)
+        metadata = saml_settings.get_sp_metadata()
+        errors = saml_settings.validate_metadata(metadata)
 
-    if len(errors) == 0:
-        resp = HttpResponse(content=metadata, content_type='text/xml')
-    else:
-        resp = HttpResponseServerError(content=', '.join(errors))
-    return resp
+        if len(errors) == 0:
+            resp = HttpResponse(content=metadata, content_type='text/xml')
+        else:
+            resp = HttpResponseServerError(content=', '.join(errors))
+        return resp
 
 def prepare_tornado_request(request):
     result = {
@@ -128,6 +134,8 @@ def prepare_tornado_request(request):
         'post_data': request.arguments,
         'query_string': request.query
     }
+    #print request
+    #print result
     return result
 
 def init_saml_auth(req):
